@@ -54,6 +54,10 @@ jobs:
           path: artifacts/prod/project_c
         continue-on-error: true
 
+      - name: Clone Power BI project
+        run: |
+          git clone https://github.com/${{ github.repository_owner }}/powerbi-finance-report.git powerbi-project
+
       - name: Merge documentation
         run: |
           python3 scripts/merge_docs.py --env prod
