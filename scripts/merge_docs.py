@@ -233,6 +233,105 @@ def inject_pbi_exposures(merged_manifest, node_fqn_map, pbi_path, pbi_name):
     return added
 
 
+def inject_pbi_from_json(merged_manifest, node_fqn_map, json_path, pbi_name):
+    """Load pre-parsed PBI metadata JSON (produced by powerbi repo CI) and inject exposures."""
+    if not os.path.isfile(json_path):
+        print(f"  PBI metadata not found: {json_path}, skipping")
+        return 0
+
+    with open(json_path) as f:
+        pbi_data = json.load(f)
+
+    report_name = pbi_data.get("report_name") or pbi_name
+    print(f"\n  Power BI (from artifact): {report_name} ({len(pbi_data['tables'])} tables, {len(pbi_data['relationships'])} relationships)")
+
+    added = 0
+    for table in pbi_data["tables"]:
+        sf_fqn = (table.get("source_fqn") or "").upper()
+        if not sf_fqn:
+            continue
+
+        upstream_model = node_fqn_map.get(sf_fqn)
+        if not upstream_model:
+            table_name_upper = sf_fqn.split(".")[-1] if "." in sf_fqn else table["name"].upper()
+            for nk, nv in merged_manifest.get("nodes", {}).items():
+                if not nk.startswith("model."):
+                    continue
+                alias = (nv.get("alias") or nv.get("name") or "").upper()
+                if alias == table_name_upper:
+                    upstream_model = nk
+                    break
+
+        if not upstream_model:
+            continue
+
+        safe_report = report_name.lower().replace(" ", "_").replace("-", "_")
+        safe_table = table["name"].lower().replace(" ", "_").replace("-", "_")
+        exposure_key = f"exposure.powerbi.{safe_report}.{safe_table}"
+
+        measures_doc = ""
+        if table.get("measures"):
+            measures_doc = "\n\n**DAX Measures:**\n\n| Measure | Formula | Format |\n|---------|---------|--------|\n"
+            for m in table["measures"]:
+                expr = m["expression"].replace("\n", " ").replace("|", "\\|")[:80]
+                measures_doc += f"| {m['name']} | `{expr}` | {m.get('format_string', '')} |\n"
+
+        columns_doc = ""
+        if table.get("columns"):
+            columns_doc = "\n\n**Columns:**\n\n| Column | Type | Summarize By |\n|--------|------|-------------|\n"
+            for c in table["columns"]:
+                columns_doc += f"| {c['name']} | {c.get('data_type', '')} | {c.get('summarize_by', '')} |\n"
+
+        description = f"Power BI table in **{report_name}**. Sources from `{sf_fqn}`.{measures_doc}{columns_doc}"
+
+        exposure_node = {
+            "name": f"{safe_report}_{safe_table}",
+            "resource_type": "exposure",
+            "package_name": "powerbi",
+            "path": f"powerbi/{safe_report}/{safe_table}.yml",
+            "original_file_path": f"models/powerbi/{safe_report}/{safe_table}.yml",
+            "unique_id": exposure_key,
+            "fqn": ["powerbi", safe_report, safe_table],
+            "type": "dashboard",
+            "owner": {"email": None, "name": "BI Team"},
+            "description": description,
+            "label": f"{report_name} - {table['name']}",
+            "maturity": "high",
+            "meta": {
+                "tool": "Power BI",
+                "report": report_name,
+                "table": table["name"],
+                "mode": table.get("mode", "import"),
+                "snowflake_source": sf_fqn,
+                "measures": table.get("measures", []),
+                "columns": [{"name": c["name"], "type": c.get("data_type", "")} for c in table.get("columns", [])],
+            },
+            "tags": ["powerbi", "dashboard"],
+            "config": {"enabled": True, "tags": ["powerbi", "dashboard"], "meta": {}},
+            "unrendered_config": {},
+            "url": None,
+            "depends_on": {"macros": [], "nodes": [upstream_model]},
+            "refs": [{"name": upstream_model.split(".")[-1], "package": None, "version": None}],
+            "sources": [],
+            "metrics": [],
+            "created_at": 1780371916.0,
+        }
+
+        merged_manifest.setdefault("exposures", {})[exposure_key] = exposure_node
+        merged_manifest.setdefault("child_map", {}).setdefault(upstream_model, [])
+        if exposure_key not in merged_manifest["child_map"][upstream_model]:
+            merged_manifest["child_map"][upstream_model].append(exposure_key)
+        merged_manifest.setdefault("parent_map", {})[exposure_key] = [upstream_model]
+        merged_manifest["child_map"][exposure_key] = []
+        merged_manifest.setdefault("group_map", {})
+        merged_manifest.setdefault("disabled", {})
+
+        added += 1
+        print(f"    Added: {table['name']} → {upstream_model}")
+
+    return added
+
+
 def main():
     parser = argparse.ArgumentParser(description="Merge dbt docs from multiple projects")
     parser.add_argument("--env", choices=["dev", "prod"], default="dev")
@@ -261,13 +360,15 @@ def main():
     print(f"  Total stitched: {stitched}")
 
     print(f"\n--- Power BI Integration ---")
-    # Configure your Power BI repo paths here
-    pbi_repos = {
-        "finance_report": os.path.join(base_dir, "powerbi-project"),
-    }
+    pbi_json_path = os.path.join(artifacts_dir, "powerbi", "pbi_metadata.json")
+    pbi_tmdl_path = os.path.join(base_dir, "powerbi-project")
     total_exposures = 0
-    for pbi_name, pbi_path in pbi_repos.items():
-        total_exposures += inject_pbi_exposures(merged_manifest, node_fqn_map, pbi_path, pbi_name)
+    if os.path.isfile(pbi_json_path):
+        total_exposures += inject_pbi_from_json(merged_manifest, node_fqn_map, pbi_json_path, "finance_report")
+    elif os.path.isdir(pbi_tmdl_path):
+        total_exposures += inject_pbi_exposures(merged_manifest, node_fqn_map, pbi_tmdl_path, "finance_report")
+    else:
+        print("  No Power BI source found (neither artifact JSON nor TMDL repo)")
     print(f"  Total PBI exposures: {total_exposures}")
 
     os.makedirs(docs_dir, exist_ok=True)

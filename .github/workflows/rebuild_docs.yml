@@ -54,9 +54,15 @@ jobs:
           path: artifacts/prod/project_c
         continue-on-error: true
 
-      - name: Clone Power BI project
-        run: |
-          git clone https://github.com/${{ github.repository_owner }}/powerbi-finance-report.git powerbi-project
+      - name: Download Power BI metadata
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          github_token: ${{ secrets.DOCS_DISPATCH_TOKEN }}
+          repo: ${{ github.repository_owner }}/powerbi-finance-report
+          workflow: export-pbi.yml
+          name: pbi-metadata-finance-report
+          path: artifacts/prod/powerbi
+        continue-on-error: true
 
       - name: Merge documentation
         run: |
