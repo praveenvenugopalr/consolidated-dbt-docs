@@ -1,0 +1,51 @@
+table 'Balance Trend'
+
+	measure 'Current Avg Balance' = AVERAGE('Balance Trend'[closing_balance])
+		formatString: $#,##0.00
+		description: Average closing balance across all accounts
+
+	measure 'Total Hold Amount' = SUM('Balance Trend'[hold_amount])
+		formatString: $#,##0.00
+		description: Sum of all held amounts
+
+	column account_id
+		dataType: string
+		sourceColumn: account_id
+		summarizeBy: none
+
+	column balance_date
+		dataType: dateTime
+		sourceColumn: balance_date
+		summarizeBy: none
+		formatString: yyyy-MM-dd
+
+	column closing_balance
+		dataType: decimal
+		sourceColumn: closing_balance
+		summarizeBy: sum
+
+	column available_balance
+		dataType: decimal
+		sourceColumn: available_balance
+		summarizeBy: sum
+
+	column hold_amount
+		dataType: decimal
+		sourceColumn: hold_amount
+		summarizeBy: sum
+
+	column avg_balance_30d
+		dataType: decimal
+		sourceColumn: avg_balance_30d
+		summarizeBy: none
+
+	partition 'Balance Trend' = m
+		mode: directQuery
+		source =
+			let
+				Source = Snowflake.Databases("myaccount.snowflakecomputing.com", "COMPUTE_WH"),
+				DB = Source{[Name="FINANCE_MART"]}[Data],
+				Schema = DB{[Name="RETAIL_BANKING"]}[Data],
+				Table = Schema{[Name="DM_ACCOUNT_BALANCE_TREND"]}[Data]
+			in
+				Table

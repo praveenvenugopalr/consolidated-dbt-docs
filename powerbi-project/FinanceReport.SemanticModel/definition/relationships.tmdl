@@ -1,0 +1,11 @@
+relationship rel_txn_customer
+	fromColumn: Monthly Transactions.customer_id
+	toColumn: 'Customer 360'.customer_id
+
+relationship rel_balance_customer
+	fromColumn: Balance Trend.account_id
+	toColumn: 'Monthly Transactions'.account_id
+
+relationship rel_dormancy_customer
+	fromColumn: 'Dormancy Risk'.customer_id
+	toColumn: 'Customer 360'.customer_id

@@ -1,0 +1,4 @@
+docs/
+artifacts/
+*.duckdb
+__pycache__/

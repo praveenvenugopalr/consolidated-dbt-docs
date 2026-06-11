@@ -1,0 +1,64 @@
+table 'Customer 360'
+
+	measure 'Total Customers' = COUNTROWS('Customer 360')
+		formatString: #,##0
+		description: Total number of unique customers
+
+	measure 'Avg Tenure Months' = AVERAGE('Customer 360'[tenure_months])
+		formatString: #,##0.0
+		description: Average customer tenure in months
+
+	measure 'Premium Customer %' = 
+		DIVIDE(
+			CALCULATE(COUNTROWS('Customer 360'), 'Customer 360'[segment] = "PREMIUM"),
+			COUNTROWS('Customer 360'),
+			0
+		)
+		formatString: 0.0%
+		description: Percentage of customers in PREMIUM segment
+
+	column customer_id
+		dataType: string
+		sourceColumn: customer_id
+		summarizeBy: none
+
+	column full_name
+		dataType: string
+		sourceColumn: full_name
+		summarizeBy: none
+
+	column segment
+		dataType: string
+		sourceColumn: segment
+		summarizeBy: none
+
+	column tenure_months
+		dataType: int64
+		sourceColumn: tenure_months
+		summarizeBy: sum
+
+	column age
+		dataType: int64
+		sourceColumn: age
+		summarizeBy: none
+
+	column account_count
+		dataType: int64
+		sourceColumn: account_count
+		summarizeBy: sum
+
+	column active_accounts
+		dataType: int64
+		sourceColumn: active_accounts
+		summarizeBy: sum
+
+	partition 'Customer 360' = m
+		mode: import
+		source =
+			let
+				Source = Snowflake.Databases("myaccount.snowflakecomputing.com", "COMPUTE_WH"),
+				DB = Source{[Name="FINANCE_MART"]}[Data],
+				Schema = DB{[Name="RETAIL_BANKING"]}[Data],
+				Table = Schema{[Name="DM_CUSTOMER_360"]}[Data]
+			in
+				Table

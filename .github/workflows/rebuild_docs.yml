@@ -1,0 +1,83 @@
+name: Rebuild Consolidated Docs
+
+on:
+  repository_dispatch:
+    types: [docs-updated]
+  workflow_dispatch:
+
+permissions:
+  pages: write
+  id-token: write
+  contents: read
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Download Project A artifacts
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          github_token: ${{ secrets.DOCS_DISPATCH_TOKEN }}
+          repo: ${{ github.repository_owner }}/dbt-finance-foundation
+          workflow: dbt-docs.yml
+          name: dbt-docs-finance-foundation
+          path: artifacts/prod/project_a
+        continue-on-error: true
+
+      - name: Download Project B artifacts
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          github_token: ${{ secrets.DOCS_DISPATCH_TOKEN }}
+          repo: ${{ github.repository_owner }}/dbt-retail-banking-mart
+          workflow: dbt-docs.yml
+          name: dbt-docs-retail-banking-mart
+          path: artifacts/prod/project_b
+        continue-on-error: true
+
+      - name: Download Project C artifacts
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          github_token: ${{ secrets.DOCS_DISPATCH_TOKEN }}
+          repo: ${{ github.repository_owner }}/dbt-treasury-risk-mart
+          workflow: dbt-docs.yml
+          name: dbt-docs-treasury-risk-mart
+          path: artifacts/prod/project_c
+        continue-on-error: true
+
+      - name: Merge documentation
+        run: |
+          python3 scripts/merge_docs.py --env prod
+          cd docs
+          cp manifest_prod.json manifest.json
+          cp catalog_prod.json catalog.json
+
+      - name: Inject environment switcher
+        run: |
+          cp artifacts/prod/project_a/index.html docs/index.html
+          python3 scripts/inject_switcher.py
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

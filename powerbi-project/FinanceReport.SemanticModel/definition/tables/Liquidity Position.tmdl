@@ -1,0 +1,46 @@
+table 'Liquidity Position'
+
+	measure 'Net Liquidity' = SUM('Liquidity Position'[net_position])
+		formatString: $#,##0.00
+		description: Cumulative net position (inflows minus outflows)
+
+	measure 'Avg Liquidity Ratio' = AVERAGE('Liquidity Position'[liquidity_ratio])
+		formatString: #,##0.00
+		description: Average ratio of inflows to outflows
+
+	column position_date
+		dataType: dateTime
+		sourceColumn: position_date
+		summarizeBy: none
+		formatString: yyyy-MM-dd
+
+	column total_inflows
+		dataType: decimal
+		sourceColumn: total_inflows
+		summarizeBy: sum
+
+	column total_outflows
+		dataType: decimal
+		sourceColumn: total_outflows
+		summarizeBy: sum
+
+	column net_position
+		dataType: decimal
+		sourceColumn: net_position
+		summarizeBy: sum
+
+	column liquidity_ratio
+		dataType: decimal
+		sourceColumn: liquidity_ratio
+		summarizeBy: none
+
+	partition 'Liquidity Position' = m
+		mode: import
+		source =
+			let
+				Source = Snowflake.Databases("myaccount.snowflakecomputing.com", "COMPUTE_WH"),
+				DB = Source{[Name="FINANCE_MART"]}[Data],
+				Schema = DB{[Name="TREASURY_RISK"]}[Data],
+				Table = Schema{[Name="DM_LIQUIDITY_POSITION"]}[Data]
+			in
+				Table

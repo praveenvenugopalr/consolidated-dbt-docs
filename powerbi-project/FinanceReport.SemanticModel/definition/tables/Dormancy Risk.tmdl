@@ -1,0 +1,59 @@
+table 'Dormancy Risk'
+
+	measure 'High Risk Accounts' = 
+		CALCULATE(
+			COUNTROWS('Dormancy Risk'),
+			'Dormancy Risk'[dormancy_risk_category] IN {"HIGH", "CRITICAL"}
+		)
+		formatString: #,##0
+		description: Count of accounts with HIGH or CRITICAL dormancy risk
+
+	measure 'Dormancy Rate %' = 
+		DIVIDE(
+			CALCULATE(COUNTROWS('Dormancy Risk'), 'Dormancy Risk'[dormancy_risk_category] <> "LOW"),
+			COUNTROWS('Dormancy Risk'),
+			0
+		)
+		formatString: 0.0%
+		description: Percentage of accounts that are not LOW risk
+
+	column account_id
+		dataType: string
+		sourceColumn: account_id
+		summarizeBy: none
+
+	column customer_id
+		dataType: string
+		sourceColumn: customer_id
+		summarizeBy: none
+
+	column account_type
+		dataType: string
+		sourceColumn: account_type
+		summarizeBy: none
+
+	column status
+		dataType: string
+		sourceColumn: status
+		summarizeBy: none
+
+	column days_since_last_transaction
+		dataType: int64
+		sourceColumn: days_since_last_transaction
+		summarizeBy: none
+
+	column dormancy_risk_category
+		dataType: string
+		sourceColumn: dormancy_risk_category
+		summarizeBy: none
+
+	partition 'Dormancy Risk' = m
+		mode: import
+		source =
+			let
+				Source = Snowflake.Databases("myaccount.snowflakecomputing.com", "COMPUTE_WH"),
+				DB = Source{[Name="FINANCE_MART"]}[Data],
+				Schema = DB{[Name="TREASURY_RISK"]}[Data],
+				Table = Schema{[Name="DM_DORMANCY_RISK"]}[Data]
+			in
+				Table

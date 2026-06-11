@@ -1,0 +1,75 @@
+table 'Monthly Transactions'
+
+	measure 'Total Transaction Volume' = SUM('Monthly Transactions'[transaction_count])
+		formatString: #,##0
+		description: Sum of all transactions across all accounts
+
+	measure 'Net Cash Flow' = SUM('Monthly Transactions'[net_flow])
+		formatString: $#,##0.00
+		description: Total credits minus total debits
+
+	measure 'Avg Transactions Per Account' = 
+		DIVIDE(
+			SUM('Monthly Transactions'[transaction_count]),
+			DISTINCTCOUNT('Monthly Transactions'[account_id]),
+			0
+		)
+		formatString: #,##0.0
+		description: Average number of transactions per unique account
+
+	column account_id
+		dataType: string
+		sourceColumn: account_id
+		summarizeBy: none
+
+	column customer_id
+		dataType: string
+		sourceColumn: customer_id
+		summarizeBy: none
+
+	column account_type
+		dataType: string
+		sourceColumn: account_type
+		summarizeBy: none
+
+	column transaction_month
+		dataType: dateTime
+		sourceColumn: transaction_month
+		summarizeBy: none
+		formatString: MMM yyyy
+
+	column channel
+		dataType: string
+		sourceColumn: channel
+		summarizeBy: none
+
+	column transaction_count
+		dataType: int64
+		sourceColumn: transaction_count
+		summarizeBy: sum
+
+	column total_credits
+		dataType: decimal
+		sourceColumn: total_credits
+		summarizeBy: sum
+
+	column total_debits
+		dataType: decimal
+		sourceColumn: total_debits
+		summarizeBy: sum
+
+	column net_flow
+		dataType: decimal
+		sourceColumn: net_flow
+		summarizeBy: sum
+
+	partition 'Monthly Transactions' = m
+		mode: import
+		source =
+			let
+				Source = Snowflake.Databases("myaccount.snowflakecomputing.com", "COMPUTE_WH"),
+				DB = Source{[Name="FINANCE_MART"]}[Data],
+				Schema = DB{[Name="RETAIL_BANKING"]}[Data],
+				Table = Schema{[Name="DM_MONTHLY_TRANSACTION_SUMMARY"]}[Data]
+			in
+				Table
