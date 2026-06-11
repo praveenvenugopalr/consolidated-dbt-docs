@@ -69,7 +69,9 @@ jobs:
           python3 scripts/merge_docs.py --env prod
           cd docs
           cp manifest_prod.json manifest.json
+          cp manifest_prod.json manifest_dev.json
           cp catalog_prod.json catalog.json
+          cp catalog_prod.json catalog_dev.json
 
       - name: Inject environment switcher
         run: |
