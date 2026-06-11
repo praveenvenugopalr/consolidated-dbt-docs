@@ -1,0 +1,343 @@
+{
+  "report_name": "FinanceReport",
+  "tables": [
+    {
+      "name": "Balance Trend",
+      "source_fqn": "FINANCE_MART.RETAIL_BANKING.DM_ACCOUNT_BALANCE_TREND",
+      "mode": "directQuery",
+      "measures": [
+        {
+          "name": "Current Avg Balance",
+          "expression": "AVERAGE('Balance Trend'[closing_balance])",
+          "format_string": "",
+          "description": ""
+        },
+        {
+          "name": "Total Hold Amount",
+          "expression": "SUM('Balance Trend'[hold_amount])",
+          "format_string": "",
+          "description": ""
+        }
+      ],
+      "columns": [
+        {
+          "name": "account_id",
+          "data_type": "string",
+          "description": "",
+          "summarize_by": "none"
+        },
+        {
+          "name": "balance_date",
+          "data_type": "dateTime",
+          "description": "",
+          "summarize_by": "none"
+        },
+        {
+          "name": "closing_balance",
+          "data_type": "decimal",
+          "description": "",
+          "summarize_by": "sum"
+        },
+        {
+          "name": "available_balance",
+          "data_type": "decimal",
+          "description": "",
+          "summarize_by": "sum"
+        },
+        {
+          "name": "hold_amount",
+          "data_type": "decimal",
+          "description": "",
+          "summarize_by": "sum"
+        },
+        {
+          "name": "avg_balance_30d",
+          "data_type": "decimal",
+          "description": "",
+          "summarize_by": "none"
+        }
+      ]
+    },
+    {
+      "name": "Customer 360",
+      "source_fqn": "FINANCE_MART.RETAIL_BANKING.DM_CUSTOMER_360",
+      "mode": "import",
+      "measures": [
+        {
+          "name": "Total Customers",
+          "expression": "COUNTROWS('Customer 360')",
+          "format_string": "",
+          "description": ""
+        },
+        {
+          "name": "Avg Tenure Months",
+          "expression": "AVERAGE('Customer 360'[tenure_months])",
+          "format_string": "",
+          "description": ""
+        },
+        {
+          "name": "Premium Customer %",
+          "expression": "DIVIDE(\n\t\t\tCALCULATE(COUNTROWS('Customer 360'), 'Customer 360'[segment] = \"PREMIUM\"),\n\t\t\tCOUNTROWS('Customer 360'),\n\t\t\t0\n\t\t)",
+          "format_string": "",
+          "description": ""
+        }
+      ],
+      "columns": [
+        {
+          "name": "customer_id",
+          "data_type": "string",
+          "description": "",
+          "summarize_by": "none"
+        },
+        {
+          "name": "full_name",
+          "data_type": "string",
+          "description": "",
+          "summarize_by": "none"
+        },
+        {
+          "name": "segment",
+          "data_type": "string",
+          "description": "",
+          "summarize_by": "none"
+        },
+        {
+          "name": "tenure_months",
+          "data_type": "int64",
+          "description": "",
+          "summarize_by": "sum"
+        },
+        {
+          "name": "age",
+          "data_type": "int64",
+          "description": "",
+          "summarize_by": "none"
+        },
+        {
+          "name": "account_count",
+          "data_type": "int64",
+          "description": "",
+          "summarize_by": "sum"
+        },
+        {
+          "name": "active_accounts",
+          "data_type": "int64",
+          "description": "",
+          "summarize_by": "sum"
+        }
+      ]
+    },
+    {
+      "name": "Dormancy Risk",
+      "source_fqn": "FINANCE_MART.TREASURY_RISK.DM_DORMANCY_RISK",
+      "mode": "import",
+      "measures": [
+        {
+          "name": "High Risk Accounts",
+          "expression": "CALCULATE(\n\t\t\tCOUNTROWS('Dormancy Risk'),\n\t\t\t'Dormancy Risk'[dormancy_risk_category] IN {\"HIGH\", \"CRITICAL\"}\n\t\t)",
+          "format_string": "",
+          "description": ""
+        },
+        {
+          "name": "Dormancy Rate %",
+          "expression": "DIVIDE(\n\t\t\tCALCULATE(COUNTROWS('Dormancy Risk'), 'Dormancy Risk'[dormancy_risk_category] <> \"LOW\"),\n\t\t\tCOUNTROWS('Dormancy Risk'),\n\t\t\t0\n\t\t)",
+          "format_string": "",
+          "description": ""
+        }
+      ],
+      "columns": [
+        {
+          "name": "account_id",
+          "data_type": "string",
+          "description": "",
+          "summarize_by": "none"
+        },
+        {
+          "name": "customer_id",
+          "data_type": "string",
+          "description": "",
+          "summarize_by": "none"
+        },
+        {
+          "name": "account_type",
+          "data_type": "string",
+          "description": "",
+          "summarize_by": "none"
+        },
+        {
+          "name": "status",
+          "data_type": "string",
+          "description": "",
+          "summarize_by": "none"
+        },
+        {
+          "name": "days_since_last_transaction",
+          "data_type": "int64",
+          "description": "",
+          "summarize_by": "none"
+        },
+        {
+          "name": "dormancy_risk_category",
+          "data_type": "string",
+          "description": "",
+          "summarize_by": "none"
+        }
+      ]
+    },
+    {
+      "name": "Liquidity Position",
+      "source_fqn": "FINANCE_MART.TREASURY_RISK.DM_LIQUIDITY_POSITION",
+      "mode": "import",
+      "measures": [
+        {
+          "name": "Net Liquidity",
+          "expression": "SUM('Liquidity Position'[net_position])",
+          "format_string": "",
+          "description": ""
+        },
+        {
+          "name": "Avg Liquidity Ratio",
+          "expression": "AVERAGE('Liquidity Position'[liquidity_ratio])",
+          "format_string": "",
+          "description": ""
+        }
+      ],
+      "columns": [
+        {
+          "name": "position_date",
+          "data_type": "dateTime",
+          "description": "",
+          "summarize_by": "none"
+        },
+        {
+          "name": "total_inflows",
+          "data_type": "decimal",
+          "description": "",
+          "summarize_by": "sum"
+        },
+        {
+          "name": "total_outflows",
+          "data_type": "decimal",
+          "description": "",
+          "summarize_by": "sum"
+        },
+        {
+          "name": "net_position",
+          "data_type": "decimal",
+          "description": "",
+          "summarize_by": "sum"
+        },
+        {
+          "name": "liquidity_ratio",
+          "data_type": "decimal",
+          "description": "",
+          "summarize_by": "none"
+        }
+      ]
+    },
+    {
+      "name": "Monthly Transactions",
+      "source_fqn": "FINANCE_MART.RETAIL_BANKING.DM_MONTHLY_TRANSACTION_SUMMARY",
+      "mode": "import",
+      "measures": [
+        {
+          "name": "Total Transaction Volume",
+          "expression": "SUM('Monthly Transactions'[transaction_count])",
+          "format_string": "",
+          "description": ""
+        },
+        {
+          "name": "Net Cash Flow",
+          "expression": "SUM('Monthly Transactions'[net_flow])",
+          "format_string": "",
+          "description": ""
+        },
+        {
+          "name": "Avg Transactions Per Account",
+          "expression": "DIVIDE(\n\t\t\tSUM('Monthly Transactions'[transaction_count]),\n\t\t\tDISTINCTCOUNT('Monthly Transactions'[account_id]),\n\t\t\t0\n\t\t)",
+          "format_string": "",
+          "description": ""
+        }
+      ],
+      "columns": [
+        {
+          "name": "account_id",
+          "data_type": "string",
+          "description": "",
+          "summarize_by": "none"
+        },
+        {
+          "name": "customer_id",
+          "data_type": "string",
+          "description": "",
+          "summarize_by": "none"
+        },
+        {
+          "name": "account_type",
+          "data_type": "string",
+          "description": "",
+          "summarize_by": "none"
+        },
+        {
+          "name": "transaction_month",
+          "data_type": "dateTime",
+          "description": "",
+          "summarize_by": "none"
+        },
+        {
+          "name": "channel",
+          "data_type": "string",
+          "description": "",
+          "summarize_by": "none"
+        },
+        {
+          "name": "transaction_count",
+          "data_type": "int64",
+          "description": "",
+          "summarize_by": "sum"
+        },
+        {
+          "name": "total_credits",
+          "data_type": "decimal",
+          "description": "",
+          "summarize_by": "sum"
+        },
+        {
+          "name": "total_debits",
+          "data_type": "decimal",
+          "description": "",
+          "summarize_by": "sum"
+        },
+        {
+          "name": "net_flow",
+          "data_type": "decimal",
+          "description": "",
+          "summarize_by": "sum"
+        }
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "name": "rel_txn_customer",
+      "from_table": "Monthly Transactions",
+      "from_column": "customer_id",
+      "to_table": "Customer 360",
+      "to_column": "customer_id"
+    },
+    {
+      "name": "rel_balance_customer",
+      "from_table": "Balance Trend",
+      "from_column": "account_id",
+      "to_table": "Monthly Transactions",
+      "to_column": "account_id"
+    },
+    {
+      "name": "rel_dormancy_customer",
+      "from_table": "'Dormancy Risk'",
+      "from_column": "customer_id",
+      "to_table": "Customer 360",
+      "to_column": "customer_id"
+    }
+  ]
+}
